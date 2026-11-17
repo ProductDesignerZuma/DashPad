@@ -1,0 +1,45 @@
+name: Build unsigned IPA
+
+# Dijalankan manual dari tab Actions (tombol "Run workflow").
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+
+      - name: Info Xcode dan daftar scheme
+        run: |
+          xcodebuild -version
+          xcodebuild -list -project DashPad.xcodeproj
+
+      - name: Build tanpa signing
+        run: |
+          xcodebuild \
+            -project DashPad.xcodeproj \
+            -scheme DashPad \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build
+
+      - name: Bungkus jadi IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/DashPad.app Payload/
+          zip -qry DashPad.ipa Payload
+
+      - name: Unggah hasil
+        uses: actions/upload-artifact@v4
+        with:
+          name: DashPad-ipa
+          path: DashPad.ipa
+          retention-days: 30
